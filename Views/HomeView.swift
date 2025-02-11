@@ -22,8 +22,8 @@ struct HomeView: View {
                     // Fix padding issue
                     CurrentTransactionsView(transactions: $transactions)
                         .padding(.top, 8) // Reduce gap above transactions
-                    Spacer()
                 }
+                .padding(.bottom, 50) // Add padding to avoid content being hidden by the tab bar
             }
         }
         .background(Color.black)
