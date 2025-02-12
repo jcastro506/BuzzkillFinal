@@ -8,7 +8,9 @@ BudgetApp/
 │   ├── ChatMessage.swift
 │   ├── Friend.swift
 │   ├── Notification.swift
-│   └── Profile.swift
+│   ├── Profile.swift
+│   ├── PlaidAccount.swift
+│   └── PlaidTransaction.swift
 │
 ├── Views/
 │   ├── OnboardingView.swift
@@ -32,7 +34,8 @@ BudgetApp/
 │   ├── ChatViewModel.swift
 │   ├── FriendsViewModel.swift
 │   ├── NotificationViewModel.swift
-│   └── ProfileViewModel.swift
+│   ├── ProfileViewModel.swift
+│   └── PlaidViewModel.swift
 │
 ├── Services/
 │   ├── AuthService.swift
@@ -40,7 +43,8 @@ BudgetApp/
 │   ├── ChatService.swift
 │   ├── FriendService.swift
 │   ├── NotificationService.swift
-│   └── ProfileService.swift
+│   ├── ProfileService.swift
+│   └── PlaidService.swift
 │
 ├── Components/
 │   ├── ButtonComponent.swift

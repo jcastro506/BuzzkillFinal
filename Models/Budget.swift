@@ -5,4 +5,5 @@ struct Budget {
     var totalAmount: Double
     var spentAmount: Double
     // Add other budget properties here
-} 
+}
+

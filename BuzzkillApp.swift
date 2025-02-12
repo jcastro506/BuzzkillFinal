@@ -11,6 +11,8 @@ import SwiftUI
 struct BuzzkillApp: App {
     @State private var isSplashScreenActive = true
     @State private var isUserSignedIn = true // Set to true for testing
+    @State private var selectedTab = 0
+    @StateObject private var budgetModel = BudgetModel() // Create the shared data model
 
     var body: some Scene {
         WindowGroup {
@@ -25,10 +27,11 @@ struct BuzzkillApp: App {
                     .preferredColorScheme(.dark) // Enforce dark mode
             } else {
                 if isUserSignedIn {
-                    MainTabView() // Use MainTabView if user is signed in
+                    MainTabView(selectedTab: $selectedTab)
+                        .environmentObject(budgetModel) // Provide the shared data model
                         .preferredColorScheme(.dark) // Enforce dark mode
                 } else {
-                    SignUpView() // Direct to SignUpView if user is not signed in
+                    SignUpView()
                         .preferredColorScheme(.dark) // Enforce dark mode
                 }
             }

@@ -1,10 +1,10 @@
 import Foundation
 
-struct Transaction: Identifiable {
-    var id: UUID
-    var amount: Double
-    var date: Date
-    var description: String
-    var name: String
+struct Transaction: Identifiable, Equatable {
+    let id: UUID
+    let amount: Double
+    let date: Date
+    let description: String
+    let name: String
     // Add other transaction properties here
 } 

@@ -1,31 +1,38 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @Binding var selectedTab: Int
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             HomeView()
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("Home")
                 }
-            
-            SetupBudgetView()
+                .tag(0)
+
+            SetBudgetView(selectedTab: $selectedTab)
                 .tabItem {
                     Image(systemName: "dollarsign.circle.fill")
                     Text("Budget")
                 }
-            
+                .tag(1)
+
             ChatView()
                 .tabItem {
                     Image(systemName: "message.fill")
                     Text("Chat")
                 }
+                .tag(2)
         }
     }
 }
 
 struct MainTabView_Previews: PreviewProvider {
+    @State static var selectedTab = 0
+
     static var previews: some View {
-        MainTabView()
+        MainTabView(selectedTab: $selectedTab)
     }
 } 
