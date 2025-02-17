@@ -12,6 +12,8 @@
 	<string>Buzzkill</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>CFBundleVersion</key>
 	<string>1.0</string>
 	<key>NSAppTransportSecurity</key>

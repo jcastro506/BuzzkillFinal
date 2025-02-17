@@ -3,12 +3,7 @@ import ActivityKit
 
 struct HomeView: View {
     @EnvironmentObject var budgetModel: BudgetModel // Access the shared data model
-    @State private var spent: Double = 0.0
-    @State private var transactions: [Transaction] = []
-    @State private var selectedTransaction: Transaction?
-    @State private var showEditSheet = false
-    @State private var selectedPastBudget: PastBudget?
-    @State private var showBudgetDetailModal = false
+    @StateObject private var viewModel = HomeViewViewModel(budgetModel: BudgetModel()) // Temporary initialization
 
     var body: some View {
         NavigationStack {
@@ -17,19 +12,30 @@ struct HomeView: View {
                 
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        BudgetProgressView(budget: budgetModel.budgetAmount, spent: spent) // Use the shared budget amount
+                        // Add a header to display the active budget
+                        HStack {
+                            Text("Active Budget: $\(String(format: "%.2f", budgetModel.budgetAmount))")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 0)
+                            Spacer()
+                        }
+                        .padding(.top, 10)
+                        
+                        BudgetProgressView(budget: budgetModel.budgetAmount, spent: viewModel.spent) // Use the shared budget amount
                         PastBudgetsView(
-                            selectedPastBudget: $selectedPastBudget,
-                            showBudgetDetailModal: $showBudgetDetailModal
+                            selectedPastBudget: $viewModel.selectedPastBudget,
+                            showBudgetDetailModal: $viewModel.showBudgetDetailModal
                         )
                         
                         CurrentTransactionsView(
-                            transactions: $transactions,
-                            selectedTransaction: $selectedTransaction,
-                            showEditSheet: $showEditSheet
+                            transactions: $viewModel.transactions,
+                            selectedTransaction: $viewModel.selectedTransaction,
+                            showEditSheet: $viewModel.showEditSheet
                         )
                         
-                        Button(action: addDummyTransaction) {
+                        Button(action: viewModel.addDummyTransaction) {
                             Text("Add Dummy Transaction")
                                 .font(.headline)
                                 .foregroundColor(.white)
@@ -44,39 +50,22 @@ struct HomeView: View {
             }
             .background(Color.black)
             .onAppear {
-                updateSpentAmount()
-                let newBudgetAmount = UserDefaults.standard.double(forKey: "userBudget")
-                if budgetModel.budgetAmount != newBudgetAmount {
-                    budgetModel.budgetAmount = newBudgetAmount
+                if viewModel.budgetModel.budgetAmount == 0 {
+                    viewModel.budgetModel = budgetModel
+                    viewModel.updateSpentAmount()
                 }
             }
-            .sheet(isPresented: $showEditSheet) {
-                if let transaction = selectedTransaction {
-                    EditTransactionView(transaction: transaction, transactions: $transactions, onSave: updateSpentAmount)
+            .sheet(isPresented: $viewModel.showEditSheet) {
+                if let transaction = viewModel.selectedTransaction {
+                    EditTransactionView(transaction: transaction, transactions: $viewModel.transactions, onSave: viewModel.updateSpentAmount)
                 }
             }
-            .sheet(isPresented: $showBudgetDetailModal) {
-                if let budget = selectedPastBudget {
+            .sheet(isPresented: $viewModel.showBudgetDetailModal) {
+                if let budget = viewModel.selectedPastBudget {
                     BudgetDetailView(budget: budget)
                 }
             }
         }
-    }
-    
-    private func addDummyTransaction() {
-        let dummyTransaction = Transaction(
-            id: UUID(),
-            amount: 10.0, // Dummy amount
-            date: Date(),
-            description: "Dummy Transaction",
-            name: "Test"
-        )
-        transactions.append(dummyTransaction)
-        updateSpentAmount()
-    }
-    
-    private func updateSpentAmount() {
-        spent = transactions.reduce(0) { $0 + $1.amount }
     }
 }
 

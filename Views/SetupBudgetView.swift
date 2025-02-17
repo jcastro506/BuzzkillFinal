@@ -1,5 +1,7 @@
 import SwiftUI
 import CoreLocation
+import ActivityKit
+import WidgetKit
 
 struct SetBudgetView: View {
     @Binding var selectedTab: Int
@@ -11,8 +13,7 @@ struct SetBudgetView: View {
     @State private var showAutoStartPrompt: Bool = false
     @State private var showInfoAlert: Bool = false
     @State private var infoMessage: String = ""
-    @State private var showConnectCardPrompt: Bool = false
-    @State private var isCardConnected: Bool = false
+    @State private var showConfirmationAlert: Bool = false
 
     var body: some View {
         NavigationView {
@@ -133,13 +134,14 @@ struct SetBudgetView: View {
 
                 Button(action: {
                     if let amount = Double(budgetAmount) {
-                        budgetModel.budgetAmount = amount // Update the shared data model
+                        budgetModel.budgetAmount = amount
                         UserDefaults.standard.set(amount, forKey: "userBudget")
-                        if !isCardConnected {
-                            showConnectCardPrompt = true
-                        } else {
-                            selectedTab = 0 // Switch to the Home tab
-                        }
+                        
+                        // Start the Live Activity
+                        startBudgetLiveActivity(amount: amount)
+                        
+                        // Show confirmation alert
+                        showConfirmationAlert = true
                     }
                 }) {
                     Text("Lock it In")
@@ -152,12 +154,6 @@ struct SetBudgetView: View {
                         .shadow(color: Color.blue.opacity(0.6), radius: 10, x: 0, y: 5)
                 }
                 .padding()
-                .sheet(isPresented: $showConnectCardPrompt) {
-                    ConnectCardView {
-                        isCardConnected = true // Update the state when card connection is complete
-                        selectedTab = 0 // Switch to the Home tab
-                    }
-                }
             }
             .background(Color.black.edgesIgnoringSafeArea(.all))
             .alert(isPresented: $showInfoAlert) {
@@ -171,10 +167,39 @@ struct SetBudgetView: View {
                         locationManager.requestPermission()
                     },
                     secondaryButton: .cancel(Text("Not Now")) {
-                        autoStartBudget = false // Reset the toggle to off
+                        autoStartBudget = false
                     }
                 )
             }
+            .alert(isPresented: $showConfirmationAlert) {
+                Alert(
+                    title: Text("Budget Set"),
+                    message: Text("Your budget has been successfully set."),
+                    dismissButton: .default(Text("OK")) {
+                        selectedTab = 0 // Navigate to Home tab
+                    }
+                )
+            }
+        }
+    }
+    
+    private func startBudgetLiveActivity(amount: Double) {
+        let attributes = BudgetDetailsWidgetAttributes(name: "Buzzkill Budget")
+        let contentState = BudgetDetailsWidgetAttributes.ContentState(
+            totalBudget: amount,
+            amountSpent: 0.0,
+            amountRemaining: amount
+        )
+        
+        do {
+            let activity = try Activity<BudgetDetailsWidgetAttributes>.request(
+                attributes: attributes,
+                contentState: contentState,
+                pushType: nil
+            )
+            print("Started Live Activity: \(activity.id)")
+        } catch {
+            print("Failed to start Live Activity: \(error.localizedDescription)")
         }
     }
 }
