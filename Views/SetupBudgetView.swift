@@ -11,6 +11,8 @@ struct SetBudgetView: View {
     @State private var showAutoStartPrompt: Bool = false
     @State private var showInfoAlert: Bool = false
     @State private var infoMessage: String = ""
+    @State private var showConnectCardPrompt: Bool = false
+    @State private var isCardConnected: Bool = false
 
     var body: some View {
         NavigationView {
@@ -133,7 +135,11 @@ struct SetBudgetView: View {
                     if let amount = Double(budgetAmount) {
                         budgetModel.budgetAmount = amount // Update the shared data model
                         UserDefaults.standard.set(amount, forKey: "userBudget")
-                        selectedTab = 0 // Switch to the Home tab
+                        if !isCardConnected {
+                            showConnectCardPrompt = true
+                        } else {
+                            selectedTab = 0 // Switch to the Home tab
+                        }
                     }
                 }) {
                     Text("Lock it In")
@@ -143,9 +149,15 @@ struct SetBudgetView: View {
                         .frame(maxWidth: .infinity)
                         .background(Color.blue)
                         .cornerRadius(10)
-                        .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
+                        .shadow(color: Color.blue.opacity(0.6), radius: 10, x: 0, y: 5)
                 }
                 .padding()
+                .sheet(isPresented: $showConnectCardPrompt) {
+                    ConnectCardView {
+                        isCardConnected = true // Update the state when card connection is complete
+                        selectedTab = 0 // Switch to the Home tab
+                    }
+                }
             }
             .background(Color.black.edgesIgnoringSafeArea(.all))
             .alert(isPresented: $showInfoAlert) {
@@ -178,14 +190,14 @@ struct SetBudgetHeaderView: View {
             Spacer()
 
             HStack(spacing: 16) {
-                Button(action: { }) {
+                NavigationLink(destination: NotificationsView()) {
                     Image(systemName: "bell.fill")
                         .resizable()
                         .frame(width: 20, height: 20)
                         .foregroundColor(.white)
                 }
 
-                Button(action: { }) {
+                NavigationLink(destination: ProfileView()) {
                     Image(systemName: "person.circle.fill")
                         .resizable()
                         .frame(width: 24, height: 24)

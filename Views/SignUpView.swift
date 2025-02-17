@@ -1,6 +1,16 @@
 import SwiftUI
 
 struct SignUpView: View {
+    @State private var isOnboardingComplete: Bool = false
+    @Binding var isUserSignedIn: Bool
+    @Binding var isNewUser: Bool
+    
+    // Add state properties for each text field
+    @State private var username: String = ""
+    @State private var email: String = ""
+    @State private var password: String = ""
+    @State private var confirmPassword: String = ""
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -37,15 +47,24 @@ struct SignUpView: View {
                 
                 // Input fields
                 Group {
-                    CustomTextField(icon: "person.fill", placeholder: "Username", text: .constant(""))
-                    CustomTextField(icon: "envelope.fill", placeholder: "Email", text: .constant(""))
-                    CustomTextField(icon: "lock.fill", placeholder: "Password", text: .constant(""), isSecure: true)
-                    CustomTextField(icon: "lock.fill", placeholder: "Confirm Password", text: .constant(""), isSecure: true)
+                    CustomTextField(icon: "person.fill", placeholder: "Username", text: $username)
+                    CustomTextField(icon: "envelope.fill", placeholder: "Email", text: $email)
+                    CustomTextField(icon: "lock.fill", placeholder: "Password", text: $password, isSecure: true)
+                    CustomTextField(icon: "lock.fill", placeholder: "Confirm Password", text: $confirmPassword, isSecure: true)
                 }
                 .padding(.horizontal, 20)
                 
                 // Sign Up Button
-                NavigationLink(destination: OnboardingView()) {
+                Button(action: {
+                    isNewUser = false
+                    if !isOnboardingComplete {
+                        // Navigate to OnboardingView
+                        isOnboardingComplete = true
+                    } else {
+                        // Automatically sign in the user after onboarding
+                        isUserSignedIn = true
+                    }
+                }) {
                     Text("Sign Up Free")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
@@ -63,13 +82,18 @@ struct SignUpView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
+                .background(
+                    NavigationLink(destination: OnboardingView(isOnboardingComplete: $isOnboardingComplete), isActive: $isOnboardingComplete) {
+                        EmptyView()
+                    }
+                )
                 
                 // Login Option
                 HStack {
                     Text("Already have an account?")
                         .foregroundColor(.white.opacity(0.8))
                     
-                    NavigationLink(destination: LoginView()) {
+                    NavigationLink(destination: LoginView(isLoginSuccessful: $isUserSignedIn)) {
                         Text("Log In")
                             .fontWeight(.bold)
                             .foregroundColor(Color.cyan)
@@ -137,7 +161,10 @@ struct CustomTextField: View {
 }
 
 struct SignUpView_Previews: PreviewProvider {
+    @State static var isUserSignedIn = false
+    @State static var isNewUser = true
+    
     static var previews: some View {
-        SignUpView()
+        SignUpView(isUserSignedIn: $isUserSignedIn, isNewUser: $isNewUser)
     }
 }

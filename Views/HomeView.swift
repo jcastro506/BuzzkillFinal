@@ -1,8 +1,9 @@
 import SwiftUI
+import ActivityKit
 
 struct HomeView: View {
     @EnvironmentObject var budgetModel: BudgetModel // Access the shared data model
-    @State private var spent: Double = 50.0
+    @State private var spent: Double = 0.0
     @State private var transactions: [Transaction] = []
     @State private var selectedTransaction: Transaction?
     @State private var showEditSheet = false
@@ -10,45 +11,72 @@ struct HomeView: View {
     @State private var showBudgetDetailModal = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            HomeHeaderView()
-            
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    BudgetProgressView(budget: budgetModel.budgetAmount, spent: spent) // Use the shared budget amount
-                    PastBudgetsView(
-                        selectedPastBudget: $selectedPastBudget,
-                        showBudgetDetailModal: $showBudgetDetailModal
-                    )
-                    
-                    CurrentTransactionsView(
-                        transactions: $transactions,
-                        selectedTransaction: $selectedTransaction,
-                        showEditSheet: $showEditSheet
-                    )
+        NavigationStack {
+            VStack(spacing: 0) {
+                HomeHeaderView()
+                
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        BudgetProgressView(budget: budgetModel.budgetAmount, spent: spent) // Use the shared budget amount
+                        PastBudgetsView(
+                            selectedPastBudget: $selectedPastBudget,
+                            showBudgetDetailModal: $showBudgetDetailModal
+                        )
+                        
+                        CurrentTransactionsView(
+                            transactions: $transactions,
+                            selectedTransaction: $selectedTransaction,
+                            showEditSheet: $showEditSheet
+                        )
+                        
+                        Button(action: addDummyTransaction) {
+                            Text("Add Dummy Transaction")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 20)
+            }
+            .background(Color.black)
+            .onAppear {
+                updateSpentAmount()
+                let newBudgetAmount = UserDefaults.standard.double(forKey: "userBudget")
+                if budgetModel.budgetAmount != newBudgetAmount {
+                    budgetModel.budgetAmount = newBudgetAmount
+                }
+            }
+            .sheet(isPresented: $showEditSheet) {
+                if let transaction = selectedTransaction {
+                    EditTransactionView(transaction: transaction, transactions: $transactions, onSave: updateSpentAmount)
+                }
+            }
+            .sheet(isPresented: $showBudgetDetailModal) {
+                if let budget = selectedPastBudget {
+                    BudgetDetailView(budget: budget)
+                }
             }
         }
-        .background(Color.black)
-        .onAppear {
-            // Update the budget when the view appears
-            let newBudgetAmount = UserDefaults.standard.double(forKey: "userBudget")
-            if budgetModel.budgetAmount != newBudgetAmount {
-                budgetModel.budgetAmount = newBudgetAmount
-            }
-        }
-        .sheet(isPresented: $showEditSheet) {
-            if let transaction = selectedTransaction {
-                EditTransactionView(transaction: transaction, transactions: $transactions)
-            }
-        }
-        .sheet(isPresented: $showBudgetDetailModal) {
-            if let budget = selectedPastBudget {
-                BudgetDetailView(budget: budget)
-            }
-        }
+    }
+    
+    private func addDummyTransaction() {
+        let dummyTransaction = Transaction(
+            id: UUID(),
+            amount: 10.0, // Dummy amount
+            date: Date(),
+            description: "Dummy Transaction",
+            name: "Test"
+        )
+        transactions.append(dummyTransaction)
+        updateSpentAmount()
+    }
+    
+    private func updateSpentAmount() {
+        spent = transactions.reduce(0) { $0 + $1.amount }
     }
 }
 
@@ -64,14 +92,14 @@ struct HomeHeaderView: View {
             Spacer()
 
             HStack(spacing: 16) {
-                Button(action: { }) {
+                NavigationLink(destination: NotificationsView()) {
                     Image(systemName: "bell.fill")
                         .resizable()
                         .frame(width: 20, height: 20)
                         .foregroundColor(.white)
                 }
 
-                Button(action: { }) {
+                NavigationLink(destination: ProfileView()) {
                     Image(systemName: "person.circle.fill")
                         .resizable()
                         .frame(width: 24, height: 24)
@@ -119,16 +147,18 @@ struct BudgetProgressView: View {
                 }
                 
                 VStack {
-                    Text("$\(String(format: "%.2f", spent))")
-                        .font(.title)
-                        .fontWeight(.bold)
+                    Text("$\(String(format: "%.2f", max(0, budget - spent))) Left")
+                        .font(.system(size: 20, weight: .bold))
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
                         .foregroundColor(.white)
                         .animation(.easeInOut(duration: 0.3))
                     
-                    Text("Remaining: $\(String(format: "%.2f", max(0, budget - spent)))")
+                    Text("\(String(format: "%.0f", progress * 100))% Spent")
                         .font(.footnote)
                         .foregroundColor(.gray)
                 }
+                .frame(width: 130) // Ensure text stays within the circle
             }
             .padding(.top, 20)
         }
@@ -223,7 +253,6 @@ struct PastBudgetsView: View {
     ]
     @Binding var selectedPastBudget: PastBudget?
     @Binding var showBudgetDetailModal: Bool
-    @State private var selectedIndex: Int = 0
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -233,19 +262,20 @@ struct PastBudgetsView: View {
                 .foregroundColor(.white)
                 .padding(.horizontal, 0)
 
-            TabView(selection: $selectedIndex) {
+            TabView {
                 ForEach(pastBudgets.indices, id: \.self) { index in
                     BudgetCard(budget: pastBudgets[index])
-                        .padding(.horizontal, 16)
+                        .frame(width: 300, height: 180)
+                        .padding(.horizontal, 8) // Adjust padding for closer spacing
                         .onTapGesture {
                             selectedPastBudget = pastBudgets[index]
                             showBudgetDetailModal = true
                         }
-                        .tag(index)
                 }
             }
-            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
-            .frame(height: 160)
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+            .frame(height: 220) // Increase height to move dots further down
+            .padding(.bottom, 20) // Add padding to move dots further down
         }
     }
 }
@@ -307,8 +337,19 @@ struct TransactionRow: View {
                 .foregroundColor(.red)
         }
         .padding()
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(12)
+        .background(
+            LinearGradient(
+                gradient: Gradient(colors: [Color.black.opacity(0.3), Color.white.opacity(0.3)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.6), radius: 10, x: 0, y: 5)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.5), lineWidth: 1)
+        )
         .onTapGesture {
             onEdit()
         }
@@ -318,15 +359,17 @@ struct TransactionRow: View {
 struct EditTransactionView: View {
     var transaction: Transaction
     @Binding var transactions: [Transaction]
+    var onSave: () -> Void
 
     @State private var newDescription: String
     @State private var newAmount: String
 
     @Environment(\.presentationMode) var presentationMode
 
-    init(transaction: Transaction, transactions: Binding<[Transaction]>) {
+    init(transaction: Transaction, transactions: Binding<[Transaction]>, onSave: @escaping () -> Void) {
         self.transaction = transaction
         self._transactions = transactions
+        self.onSave = onSave
         _newDescription = State(initialValue: transaction.description)
         _newAmount = State(initialValue: String(format: "%.2f", transaction.amount))
     }
@@ -405,6 +448,7 @@ struct EditTransactionView: View {
                     description: newDescription,
                     name: transaction.name
                 )
+                onSave()
             }
         }
         presentationMode.wrappedValue.dismiss()
@@ -412,6 +456,7 @@ struct EditTransactionView: View {
 
     private func deleteTransaction() {
         transactions.removeAll { $0.id == transaction.id }
+        onSave()
         presentationMode.wrappedValue.dismiss()
     }
 }
@@ -459,13 +504,18 @@ struct BudgetCard: View {
         .padding()
         .frame(width: 260, height: 140)
         .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(UIColor.systemGray5).opacity(0.2))
-                .shadow(radius: 5)
+            LinearGradient(
+                gradient: Gradient(colors: [Color.black.opacity(0.3), Color.gray.opacity(0.3)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .cornerRadius(14)
+            .shadow(color: Color.black.opacity(0.6), radius: 10, x: 0, y: 5)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                .stroke(Color.white, lineWidth: 2)
+                .shadow(color: Color.white.opacity(0.6), radius: 10, x: 0, y: 5)
         )
     }
     
@@ -487,68 +537,6 @@ struct BudgetCarouselView: View {
             }
             .padding(.horizontal, 16)
         }
-    }
-}
-
-// New view for budget details
-struct BudgetDetailView: View {
-    let budget: PastBudget
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Text(budget.barName)
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-
-            Text("Date: \(budget.date)")
-                .font(.headline)
-                .foregroundColor(.gray)
-
-            Text("Amount Spent: $\(String(format: "%.2f", budget.amountSpent))")
-                .font(.title)
-                .foregroundColor(.white)
-
-            Text("Budget: $\(String(format: "%.2f", budget.budget))")
-                .font(.title)
-                .foregroundColor(.white)
-
-            if budget.isUnderBudget {
-                Text("You underspent by $\(String(format: "%.2f", budget.underspentAmount))")
-                    .font(.headline)
-                    .foregroundColor(.green)
-            } else {
-                Text("You overspent by $\(String(format: "%.2f", budget.overspentAmount))")
-                    .font(.headline)
-                    .foregroundColor(.red)
-            }
-
-            List(budget.transactions) { transaction in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(transaction.description)
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        Text(transaction.date, style: .date)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                    Spacer()
-                    Text("-$\(String(format: "%.2f", transaction.amount))")
-                        .font(.headline)
-                        .foregroundColor(.red)
-                }
-                .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(12)
-            }
-            .listStyle(PlainListStyle())
-            .frame(maxHeight: 300) // Adjust height as needed
-
-            Spacer()
-        }
-        .padding()
-        .background(Color.black.edgesIgnoringSafeArea(.all))
     }
 }
 

@@ -19,6 +19,13 @@ struct MainTabView: View {
                 }
                 .tag(1)
 
+            PastBudgetsListView()
+                .tabItem {
+                    Image(systemName: "clock.fill")
+                    Text("Past Budgets")
+                }
+                .tag(3)
+
             ChatView()
                 .tabItem {
                     Image(systemName: "message.fill")

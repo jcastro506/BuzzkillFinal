@@ -28,15 +28,23 @@ struct ChatView: View {
             .background(Color.black)
             
             // Chat Messages List
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(messages) { message in
-                        ChatBubble(message: message)
+            ScrollViewReader { scrollViewProxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(messages) { message in
+                            ChatBubble(message: message)
+                                .id(message.id)
+                        }
+                    }
+                    .padding()
+                }
+                .background(Color.black)
+                .onChange(of: messages.count) { _ in
+                    if let lastMessage = messages.last {
+                        scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
                     }
                 }
-                .padding()
             }
-            .background(Color.black)
             
             // Input Bar
             HStack {
@@ -71,9 +79,9 @@ struct ChatView: View {
     
     func generateBotResponse(for input: String) -> String {
         if input.lowercased().contains("budget") {
-            return "You’ve spent 65% of your budget this week. Want to slow down?"
+            return "You've spent 65% of your budget this week. Want to slow down?"
         } else {
-            return "I’m here to help! Ask me anything about your spending."
+            return "I'm here to help! Ask me anything about your spending."
         }
     }
 }
